@@ -33,6 +33,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import hudson.AbortException;
+import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Main;
@@ -42,6 +43,8 @@ import hudson.console.LineTransformationOutputStream;
 import hudson.model.Computer;
 import hudson.model.Executor;
 import hudson.model.Item;
+import hudson.model.ParameterValue;
+import hudson.model.ParametersAction;
 import hudson.model.Queue;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -181,6 +184,19 @@ public final class WorkflowRun extends Run<WorkflowJob,WorkflowRun> implements F
     @Exported
     @Override public WorkflowRun getNextBuild() {
         return getRunMixIn().getNextBuild();
+    }
+
+    @Nonnull
+    @Override
+    public EnvVars getEnvironment(@Nonnull TaskListener listener) throws IOException, InterruptedException {
+        EnvVars envVars = super.getEnvironment(listener);
+        for (ParametersAction action : getActions(ParametersAction.class)) {
+            for (ParameterValue param: action.getParameters())
+            {
+                param.buildEnvironment(this, envVars);
+            }
+        }
+        return envVars;
     }
 
     /**
